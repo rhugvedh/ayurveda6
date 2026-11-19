@@ -1,5 +1,6 @@
 import { Fragment } from 'react';
 import Head from 'next/head';
+import Image from 'next/image';
 import NextLink from 'components/NextLink';
 import CtaBanner from 'components/CtaBanner';
 import FaqAccordion from 'components/FaqAccordion';
@@ -13,7 +14,26 @@ const BlogPost = ({ slug }) => {
   const post = blogPosts.find((p) => p.slug === slug);
   if (!post) return null;
 
-  const { seoTitle, metaDesc, h1, intro, sections, faqs, conclusion } = post;
+  const {
+    seoTitle,
+    metaDesc,
+    h1,
+    breadcrumb,
+    byline,
+    intro,
+    takeaway,
+    toc,
+    sections,
+    faqs,
+    conclusion,
+    closing,
+    disclaimer,
+  } = post;
+  const slugify = (s) =>
+    s
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
   const canonical = `${SITE}/blog/${slug}/`;
 
   const faqItems = faqs.map(({ q, a }) => ({
@@ -74,7 +94,7 @@ const BlogPost = ({ slug }) => {
                   <NextLink href="/blog/" title="Blog" />
                 </li>
                 <li className="breadcrumb-item active" aria-current="page">
-                  <span>Ayurvedic Clinic in Wagholi</span>
+                  <span>{breadcrumb || h1}</span>
                 </li>
               </ol>
             </nav>
@@ -89,21 +109,86 @@ const BlogPost = ({ slug }) => {
           <div className="container py-10 py-md-12">
             <div className="row">
               <div className="col-lg-9 mx-auto">
+                {byline && (
+                  <div className="mb-5">
+                    {byline.map((line) => (
+                      <p key={line} className="fs-16 lato fw-bold mb-1">
+                        {line}
+                      </p>
+                    ))}
+                  </div>
+                )}
+
                 {intro.map((text, i) => (
                   <p key={i} className="fs-18 lh-lg lato text-justify mb-4">
                     <BlogText text={text} />
                   </p>
                 ))}
 
+                {takeaway && (
+                  <div className="mt-6 mb-5">
+                    <h2 className="fs-28 merriweather text-second mb-3">{takeaway.title}</h2>
+                    <ul className="icon-list bullet-soft-primary mb-5">
+                      {takeaway.items.map((item) => (
+                        <li key={item} className="fs-17 lato mb-2">
+                          <i className="uil uil-check" />
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {toc && (
+                  <div className="mb-5">
+                    <h2 className="fs-28 merriweather text-second mb-3">Table of Contents</h2>
+                    <ul className="fs-17 lato">
+                      {sections.map((s) => (
+                        <li key={s.title} className="mb-1">
+                          <a href={`#${slugify(s.title)}`} className="text-color">
+                            {s.title}
+                          </a>
+                        </li>
+                      ))}
+                      <li className="mb-1">
+                        <a href="#faq" className="text-color">
+                          Frequently Asked Questions
+                        </a>
+                      </li>
+                    </ul>
+                  </div>
+                )}
+
                 {sections.map((section) => (
                   <div key={section.title}>
-                    <h2 className="fs-28 merriweather text-second mt-8 mb-3">{section.title}</h2>
+                    <h2
+                      id={slugify(section.title)}
+                      className="fs-28 merriweather text-second mt-8 mb-3"
+                      style={{ scrollMarginTop: 120 }}
+                    >
+                      {section.title}
+                    </h2>
                     {section.blocks.map((b, i) => {
                       if (b.t === 'h3') {
                         return (
                           <h3 key={i} className="fs-22 merriweather text-second mt-6 mb-3">
                             {b.text}
                           </h3>
+                        );
+                      }
+                      if (b.t === 'img') {
+                        return (
+                          <figure key={i} className="my-6">
+                            <Image
+                              src={b.src}
+                              width={b.width}
+                              height={b.height}
+                              alt={b.alt}
+                              className="rounded shadow-lg"
+                              style={{ width: '100%', height: 'auto' }}
+                              loading="lazy"
+                            />
+                          </figure>
                         );
                       }
                       if (b.t === 'ul') {
@@ -118,6 +203,30 @@ const BlogPost = ({ slug }) => {
                           </ul>
                         );
                       }
+                      if (b.t === 'table') {
+                        return (
+                          <div key={i} className="table-responsive mb-5">
+                            <table className="table table-bordered lato fs-16">
+                              <thead>
+                                <tr>
+                                  {b.head.map((h) => (
+                                    <th key={h}>{h}</th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {b.rows.map((row, r) => (
+                                  <tr key={r}>
+                                    {row.map((cell, c) => (
+                                      <td key={c}>{cell}</td>
+                                    ))}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        );
+                      }
                       return (
                         <p key={i} className="mb-4 fs-17 lh-lg lato text-justify">
                           <BlogText text={b.text} />
@@ -128,7 +237,9 @@ const BlogPost = ({ slug }) => {
                 ))}
 
                 {/* ================= FAQ ================= */}
-                <FaqAccordion title="Frequently Asked Questions" items={faqItems} idPrefix={slug} />
+                <div id="faq" style={{ scrollMarginTop: 120 }}>
+                  <FaqAccordion title="Frequently Asked Questions" items={faqItems} idPrefix={slug} />
+                </div>
 
                 {/* ================= Conclusion ================= */}
                 <div className="mt-8">
@@ -139,6 +250,24 @@ const BlogPost = ({ slug }) => {
                     </p>
                   ))}
                 </div>
+
+                {closing && (
+                  <div className="mt-8">
+                    <h2 className="fs-28 merriweather text-second mb-3">{closing.title}</h2>
+                    {closing.paras.map((text, i) => (
+                      <p key={i} className="mb-4 fs-17 lh-lg lato text-justify">
+                        <BlogText text={text} />
+                      </p>
+                    ))}
+                  </div>
+                )}
+
+                {disclaimer && (
+                  <div className="mt-8">
+                    <h2 className="fs-22 merriweather text-second mb-3">{disclaimer.title}</h2>
+                    <p className="mb-4 fs-15 lh-lg lato text-justify">{disclaimer.text}</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
